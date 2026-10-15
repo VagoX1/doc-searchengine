@@ -63,7 +63,7 @@ if uploaded_file is not None:
 
                 if submitted:
                     if not query.strip():
-                        st.warning("")
+                        st.warning("Enter a question.")
 
     except Exception as e:
         st.error(f"Could not read the document: {e}")
