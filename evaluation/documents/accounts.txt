@@ -1,0 +1,1 @@
+Account security. If you forget your password, select Reset password on the sign-in page. A recovery link is sent to your registered email. Enable two-factor authentication for extra protection.

@@ -1,0 +1,86 @@
+[
+  {
+    "id": 1,
+    "query": "How many books may members borrow?",
+    "source": "library.txt",
+    "expected_text": "Members may borrow five books.",
+    "kind": "literal"
+  },
+  {
+    "id": 2,
+    "query": "When must I bring back something I checked out?",
+    "source": "library.txt",
+    "expected_text": "Books must be returned within fourteen days.",
+    "kind": "paraphrase"
+  },
+  {
+    "id": 3,
+    "query": "How can a beginner practice Python?",
+    "source": "python.txt",
+    "expected_text": "Beginners should build small projects with clear functions.",
+    "kind": "literal"
+  },
+  {
+    "id": 4,
+    "query": "Where should I look when my program crashes?",
+    "source": "python.txt",
+    "expected_text": "Debug failures by reading the traceback and inspecting variables.",
+    "kind": "paraphrase"
+  },
+  {
+    "id": 5,
+    "query": "How do I reset my password?",
+    "source": "accounts.txt",
+    "expected_text": "select Reset password on the sign-in page.",
+    "kind": "literal"
+  },
+  {
+    "id": 6,
+    "query": "I cannot remember my login secret. How do I regain access?",
+    "source": "accounts.txt",
+    "expected_text": "A recovery link is sent to your registered email.",
+    "kind": "paraphrase"
+  },
+  {
+    "id": 7,
+    "query": "How long does standard shipping take?",
+    "source": "delivery.txt",
+    "expected_text": "Standard shipping takes three to five business days.",
+    "kind": "literal"
+  },
+  {
+    "id": 8,
+    "query": "How can I find out where my package is?",
+    "source": "delivery.txt",
+    "expected_text": "Track a parcel using the tracking link in the dispatch email.",
+    "kind": "paraphrase"
+  },
+  {
+    "id": 9,
+    "query": "What can cause blurry photographs?",
+    "source": "camera.txt",
+    "expected_text": "Blurry photographs may be caused by camera shake; use a tripod",
+    "kind": "literal"
+  },
+  {
+    "id": 10,
+    "query": "How do I keep my device steady while taking pictures?",
+    "source": "camera.txt",
+    "expected_text": "use a tripod to hold the camera steady.",
+    "kind": "paraphrase"
+  },
+  {
+    "id": 11,
+    "query": "When should I water indoor plants?",
+    "source": "gardening.txt",
+    "expected_text": "Water indoor plants when the top layer of soil feels dry.",
+    "kind": "literal"
+  },
+  {
+    "id": 12,
+    "query": "My houseplant foliage is turning yellow. What might be wrong?",
+    "source": "gardening.txt",
+    "expected_text": "Yellow leaves can indicate excessive watering.",
+    "kind": "paraphrase"
+  }
+]

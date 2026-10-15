@@ -1,0 +1,236 @@
+{
+  "corpus": "fictional six-document practice corpus",
+  "chunk_size": 40,
+  "overlap": 10,
+  "top_k": 3,
+  "model": null,
+  "results": {
+    "tfidf": {
+      "questions": 12,
+      "hit_at_1": 0.8333333333333334,
+      "hit_at_3": 0.8333333333333334,
+      "mrr_at_3": 0.8333333333333334,
+      "details": [
+        {
+          "id": 1,
+          "query": "How many books may members borrow?",
+          "source": "library.txt",
+          "expected_text": "Members may borrow five books.",
+          "kind": "literal",
+          "rank": 1,
+          "retrieved": [
+            {
+              "source": "library.txt",
+              "chunk_id": 1,
+              "score": 0.4904804249293117
+            },
+            {
+              "source": "camera.txt",
+              "chunk_id": 1,
+              "score": 0.06321948288860559
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "query": "When must I bring back something I checked out?",
+          "source": "library.txt",
+          "expected_text": "Books must be returned within fourteen days.",
+          "kind": "paraphrase",
+          "rank": 1,
+          "retrieved": [
+            {
+              "source": "library.txt",
+              "chunk_id": 1,
+              "score": 0.14224626185194894
+            },
+            {
+              "source": "gardening.txt",
+              "chunk_id": 1,
+              "score": 0.1355888974525825
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "query": "How can a beginner practice Python?",
+          "source": "python.txt",
+          "expected_text": "Beginners should build small projects with clear functions.",
+          "kind": "literal",
+          "rank": 1,
+          "retrieved": [
+            {
+              "source": "python.txt",
+              "chunk_id": 1,
+              "score": 0.14524600802264798
+            },
+            {
+              "source": "gardening.txt",
+              "chunk_id": 1,
+              "score": 0.1355888974525825
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "query": "Where should I look when my program crashes?",
+          "source": "python.txt",
+          "expected_text": "Debug failures by reading the traceback and inspecting variables.",
+          "kind": "paraphrase",
+          "rank": 1,
+          "retrieved": [
+            {
+              "source": "python.txt",
+              "chunk_id": 1,
+              "score": 0.14524600802264798
+            },
+            {
+              "source": "gardening.txt",
+              "chunk_id": 1,
+              "score": 0.1355888974525825
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "query": "How do I reset my password?",
+          "source": "accounts.txt",
+          "expected_text": "select Reset password on the sign-in page.",
+          "kind": "literal",
+          "rank": 1,
+          "retrieved": [
+            {
+              "source": "accounts.txt",
+              "chunk_id": 1,
+              "score": 0.38072065461028204
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "query": "I cannot remember my login secret. How do I regain access?",
+          "source": "accounts.txt",
+          "expected_text": "A recovery link is sent to your registered email.",
+          "kind": "paraphrase",
+          "rank": null,
+          "retrieved": []
+        },
+        {
+          "id": 7,
+          "query": "How long does standard shipping take?",
+          "source": "delivery.txt",
+          "expected_text": "Standard shipping takes three to five business days.",
+          "kind": "literal",
+          "rank": 1,
+          "retrieved": [
+            {
+              "source": "delivery.txt",
+              "chunk_id": 1,
+              "score": 0.2792142765151921
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "query": "How can I find out where my package is?",
+          "source": "delivery.txt",
+          "expected_text": "Track a parcel using the tracking link in the dispatch email.",
+          "kind": "paraphrase",
+          "rank": null,
+          "retrieved": [
+            {
+              "source": "gardening.txt",
+              "chunk_id": 1,
+              "score": 0.1355888974525825
+            },
+            {
+              "source": "accounts.txt",
+              "chunk_id": 1,
+              "score": 0.12690688487009402
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "query": "What can cause blurry photographs?",
+          "source": "camera.txt",
+          "expected_text": "Blurry photographs may be caused by camera shake; use a tripod",
+          "kind": "literal",
+          "rank": 1,
+          "retrieved": [
+            {
+              "source": "camera.txt",
+              "chunk_id": 1,
+              "score": 0.20804334434789576
+            },
+            {
+              "source": "gardening.txt",
+              "chunk_id": 1,
+              "score": 0.11070787118179366
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "query": "How do I keep my device steady while taking pictures?",
+          "source": "camera.txt",
+          "expected_text": "use a tripod to hold the camera steady.",
+          "kind": "paraphrase",
+          "rank": 1,
+          "retrieved": [
+            {
+              "source": "camera.txt",
+              "chunk_id": 1,
+              "score": 0.18017082129355144
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "query": "When should I water indoor plants?",
+          "source": "gardening.txt",
+          "expected_text": "Water indoor plants when the top layer of soil feels dry.",
+          "kind": "literal",
+          "rank": 1,
+          "retrieved": [
+            {
+              "source": "gardening.txt",
+              "chunk_id": 1,
+              "score": 0.42876974138116297
+            },
+            {
+              "source": "python.txt",
+              "chunk_id": 1,
+              "score": 0.09186164127973138
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "query": "My houseplant foliage is turning yellow. What might be wrong?",
+          "source": "gardening.txt",
+          "expected_text": "Yellow leaves can indicate excessive watering.",
+          "kind": "paraphrase",
+          "rank": 1,
+          "retrieved": [
+            {
+              "source": "gardening.txt",
+              "chunk_id": 1,
+              "score": 0.11729688779270457
+            },
+            {
+              "source": "accounts.txt",
+              "chunk_id": 1,
+              "score": 0.10978614705481235
+            },
+            {
+              "source": "library.txt",
+              "chunk_id": 1,
+              "score": 0.08274582296600358
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,5 @@
+Python Study Guide
+
+Practice Python by building small projects with clear functions.
+Read text files with pathlib and store each filename with its contents.
+Use UTF-8 encoding when reading documents.
