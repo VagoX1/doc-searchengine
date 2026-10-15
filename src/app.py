@@ -9,6 +9,9 @@ import streamlit as st
 
 from file_loader import extract_text_from_file
 
+from index_cache import make_cache_key, load_index, save_index
+from semantic_search import MODEL_NAME
+
 st.title("Document Search")
 
 uploaded_file = st.file_uploader("Upload a document", type=["txt", "pdf", "docx"])
@@ -39,20 +42,47 @@ if uploaded_file is not None:
             st.text_area("Extracted text", text, height=300)
 
             if st.button("index document"):
-                documents = [{
-                    "source": uploaded_file.name,
-                    "content": text
-                }]
+                chunk_size = 100
+                overlap = 20
 
-                with st.spinner("Indexing document..."):
-                    chunks = chunk_documents(documents)
+                cache_key = make_cache_key(
+                    uploaded_file.getvalue(),
+                    MODEL_NAME,
+                    chunk_size,
+                    overlap,
+                    file_extension=Path(uploaded_file.name).suffix
+                )
 
-                    if not chunks:
-                        st.warning("No text available to index")
+                with st.spinner("Preparing search index..."):
+                    cached = load_index(cache_key)
+
+                    if cached is not None:
+                        chunks, vectors = cached
+
+                        chunks = [
+                            {**chunk, "source": uploaded_file.name}
+                            for chunk in chunks
+                        ]
+
+                        st.info("Loaded the saved index.")
                     else:
+                        documents = [{
+                            "source": uploaded_file.name,
+                            "content": text
+                        }]
+
+                        chunks = chunk_documents(
+                            documents,
+                            chunk_size=chunk_size,
+                            overlap=overlap
+                        )
                         vectors = build_semantic_index(chunks)
-                        st.session_state["chunks"] = chunks
-                        st.session_state["vectors"] = vectors
+                        save_index(cache_key, chunks, vectors)
+
+                        st.info("Built and saved a new index.")
+
+                    st.session_state["chunks"] = chunks
+                    st.session_state["vectors"] = vectors
 
             if "vectors" in st.session_state:
                 st.success("Document indexed and ready.")
@@ -64,6 +94,25 @@ if uploaded_file is not None:
                 if submitted:
                     if not query.strip():
                         st.warning("Enter a question.")
+                    else:
+                        results = search_semantic(
+                            st.session_state["chunks"],
+                            st.session_state["vectors"],
+                            query,
+                            top_k=3
+                        )
+
+                        for result in results:
+                            st.write(
+                                f"**{result['source']} - "
+                                f"chunk {result['chunk_id']}**"
+                            )
+                            st.caption(f"similarity: {result['score']:.3f}")
+                            st.write(result["content"])
 
     except Exception as e:
-        st.error(f"Could not read the document: {e}")
+        st.error(f"Document processing failed: {e}")
+
+if uploaded_file is None:
+    for key in ("file_id", "chunks", "vectors"):
+        st.session_state.pop(key, None)

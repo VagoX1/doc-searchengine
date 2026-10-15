@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.index_cache/
 
 # Virtual environments
 .venv/
@@ -16,6 +17,8 @@ env/
 !.env.example
 *.pem
 *.key
+.continue
+review-requirements.md
 
 # Editor settings
 .vscode/
