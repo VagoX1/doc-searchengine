@@ -4,10 +4,11 @@ import hashlib
 
 from chunk_text import chunk_documents
 from semantic_search import build_semantic_index, search_semantic
+from document_qa import answer_from_context
 
 import streamlit as st
 
-from file_loader import extract_text_from_file
+from file_loader import extract_document_records
 
 from index_cache import make_cache_key, load_index, save_index
 from semantic_search import MODEL_NAME
@@ -33,8 +34,14 @@ if uploaded_file is not None:
             suffix = Path(uploaded_file.name).suffix.lower()
             path = Path(folder) / f"document{suffix}"
             path.write_bytes(uploaded_file.getvalue())
-            text = extract_text_from_file(path)
+
+            documents = extract_document_records(path)
         
+        for document in documents:
+            document["source"] = uploaded_file.name
+
+        text = "\n\n".join(document["content"] for document in documents)
+
         if not text.strip():
             st.warning("No text was extracted. Scanned PDFs may need OCR.")
         else:
@@ -50,7 +57,8 @@ if uploaded_file is not None:
                     MODEL_NAME,
                     chunk_size,
                     overlap,
-                    file_extension=Path(uploaded_file.name).suffix
+                    file_extension=Path(uploaded_file.name).suffix,
+                    chunk_strategy="paragraph",
                 )
 
                 with st.spinner("Preparing search index..."):
@@ -66,11 +74,6 @@ if uploaded_file is not None:
 
                         st.info("Loaded the saved index.")
                     else:
-                        documents = [{
-                            "source": uploaded_file.name,
-                            "content": text
-                        }]
-
                         chunks = chunk_documents(
                             documents,
                             chunk_size=chunk_size,
@@ -90,8 +93,9 @@ if uploaded_file is not None:
                 with st.form("search_form"):
                     query = st.text_input("Search")
                     submitted = st.form_submit_button("Search")
+                    answer_submitted = st.form_submit_button("Answer from document")
 
-                if submitted:
+                if submitted or answer_submitted:
                     if not query.strip():
                         st.warning("Enter a question.")
                     else:
@@ -102,11 +106,49 @@ if uploaded_file is not None:
                             top_k=3
                         )
 
+                        if answer_submitted:
+                            st.subheader("Answer")
+                            try:
+                                with st.spinner("Generating an answer from retrieved passages..."):
+                                    answer = answer_from_context(query, results)
+
+                                st.write(answer.answer)
+
+                                if answer.citations:
+                                    st.markdown("**Cited passages**")
+                                    for citation in answer.citations:
+                                        page_number = citation["page_number"]
+                                        if page_number is None:
+                                            location = (
+                                                f"{citation['source']} - "
+                                                f"chunk {citation['chunk_id']}"
+                                            )
+                                        else:
+                                            location = (
+                                                f"{citation['source']} - PDF page "
+                                                f"{page_number} - chunk {citation['chunk_id']}"
+                                            )
+                                        st.write(f"**[{citation['citation']}] {location}**")
+                                        st.write(citation["text"])
+
+                                for warning in answer.citation_warnings:
+                                    st.warning(warning)
+                            except Exception as e:
+                                st.error(f"Answer generation failed: {e}")
+
+                        st.subheader("Retrieved passages")
                         for result in results:
-                            st.write(
-                                f"**{result['source']} - "
-                                f"chunk {result['chunk_id']}**"
-                            )
+                            page_number = result.get("page_number")
+
+                            if page_number is None:
+                                location = f"{result['source']} - chunk {result['chunk_id']}"
+                            else:
+                                location = (
+                                    f"{result['source']} - PDF page {page_number} "
+                                    f"- chunk {result['chunk_id']}"
+                                )
+ 
+                            st.write(f"**{location}**")
                             st.caption(f"similarity: {result['score']:.3f}")
                             st.write(result["content"])
 

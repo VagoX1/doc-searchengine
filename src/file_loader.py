@@ -4,28 +4,91 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 SUPPORTED_EXTENSIONS = {".txt", ".pdf", ".docx"}
 
-
-def extract_text_from_file(path):
+def extract_document_records(path):
     path = Path(path)
     suffix = path.suffix.lower()
+    records = []
+
     if suffix == ".txt":
-        return path.read_text(encoding="utf-8-sig")
+        text = path.read_text(encoding="utf-8-sig")
+        if text.strip():
+            records.append({
+                "source": path.name,
+                "file_type": suffix,
+                "page_number": None,
+                "content": text,
+            })
+        return records
+
     if suffix == ".pdf":
         from pypdf import PdfReader
-        return "\n\n".join(page.extract_text() or "" for page in PdfReader(path).pages)
+
+        reader = PdfReader(path)
+
+        for page_number, page in enumerate(reader.pages, start=1):
+            try:
+                text = page.extract_text() or ""
+            except Exception as e:
+                logger.warning(
+                    "Could not extract %s, PDF page %d: %s",
+                    path.name,
+                    page_number,
+                    e
+                )
+                continue
+            
+            if not text.strip():
+                logger.warning(
+                    "No text extracted from %s, PDF page %d",
+                    path.name,
+                    page_number,
+                )
+                continue
+
+            records.append({
+                "source": path.name,
+                "file_type": suffix,
+                "page_number": page_number,
+                "content": text,
+            })
+
+        return records
+
     if suffix == ".docx":
         from docx import Document
         from docx.table import Table
         from docx.text.paragraph import Paragraph
 
         parts = []
+
         for block in Document(path).iter_inner_content():
             if isinstance(block, Paragraph):
-                parts.append(block.text)
+                if block.text.strip():
+                    parts.append(block.text)
+
             elif isinstance(block, Table):
-                parts.extend("\t".join(cell.text for cell in row.cells) for row in block.rows)
-        return "\n".join(parts)
+                for row in block.rows:
+                    cells = [cell.text.strip() for cell in row.cells]
+                    parts.append("\t".join(cells))
+
+        text = "\n\n".join(parts)
+
+        if text.strip():
+            records.append({
+                "source": path.name,
+                "file_type": suffix,
+                "page_number": None,
+                "content": text,
+            })
+
+        return records
+
     raise ValueError(f"Unsupported file type: {suffix}")
+
+def extract_text_from_file(path):
+    records = extract_document_records(path)
+    return "\n\n".join(record["content"] for record in records)
+
 
 
 def load_documents(folder_path):
@@ -38,16 +101,15 @@ def load_documents(folder_path):
         if not path.is_file() or path.suffix.lower() not in SUPPORTED_EXTENSIONS:
             continue
         try:
-            text = extract_text_from_file(path)
+            documents.extend(extract_document_records(path))
         except ImportError:
             raise  # Missing dependencies require installation, not silent skipping.
         except Exception as exc:
-            logger.warning("Could not read %s: %s", path.name, exc)
+            logger.warning(
+                "Could not read %s: %s", 
+                path.name,
+                exc)
             continue
-        if not text.strip():
-            logger.warning("No extracted text in %s; scanned files may need OCR", path.name)
-            continue
-        documents.append({"source": path.name, "content": text, "file_type": path.suffix.lower()})
     return documents
 
 

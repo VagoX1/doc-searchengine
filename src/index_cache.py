@@ -6,14 +6,22 @@ import numpy as np
 
 CACHE_DIR = Path(__file__).resolve().parent.parent / ".index_cache"
 
-def make_cache_key(file_bytes, model_name, chunk_size, overlap, file_extension):
+def make_cache_key(
+    file_bytes, 
+    model_name, 
+    chunk_size, 
+    overlap, 
+    file_extension, 
+    chunk_strategy
+):
     settings = {
         "file_hash": hashlib.sha256(file_bytes).hexdigest(),
         "model": model_name,
         "chunk_size": chunk_size,
         "overlap": overlap,
         "file_extension": file_extension.lower(),
-        "version": 2
+        "chunk_strategy": chunk_strategy,
+        "version": 3
     }
 
     encoded = json.dumps(settings, sort_keys=True).encode("utf-8")

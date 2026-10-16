@@ -1,7 +1,9 @@
 # Document search practice project
 
-Search TXT, text-based PDF, and DOCX documents using TF-IDF or local embeddings.
-Scanned PDFs need OCR. PDF pages are currently combined; chunk IDs are not page numbers.
+Search TXT, text-based PDF, and DOCX documents using TF-IDF or local embeddings,
+then optionally generate answers from retrieved passages.
+Scanned PDFs need OCR. PDF results retain page numbers; identify a passage by its source,
+page (for PDFs), and chunk number.
 DOCX body paragraphs and tables are extracted; headers and nested tables are not covered.
 
 ## Setup and search
@@ -12,6 +14,7 @@ Run from this folder:
 python -m pip install -r requirements.txt
 python main.py "borrow books" --method tfidf
 python main.py "How long can I keep a borrowed book?" --method semantic
+python -m streamlit run src/app.py
 ```
 
 The semantic model downloads on first use. Imports and TF-IDF searches do not load it.
@@ -19,13 +22,26 @@ Relative document folders are resolved beside file_loader.py; absolute paths als
 Use --directory, --chunk-size, --overlap, and --top-k to change settings.
 Semantic scores are similarities, not probabilities. Nearest passages may not answer a question.
 
+## Document-grounded answers
+
+The Streamlit app keeps retrieval local using its existing sentence-transformer index.
+Choosing **Answer from document** sends only the top three retrieved passages to the
+OpenAI Responses API for answer generation; the RAG project's document-only citation and
+abstention approach is adapted in `src/document_qa.py`. Search-only does not call the API.
+
+Set `OPENAI_API_KEY` in your environment before generating answers. The model defaults to
+`gpt-5.6-luna`, matching the RAG starter, and can be changed with `RAG_CHAT_MODEL`.
+Never put the API key in source code or commit it. Generated answers validate citation IDs
+against the passages supplied to the model and show the cited source/page excerpts.
+
 ## Stages 1 and 2
 
 - validation.py: shared input checks.
 - file_loader.py: supported file extraction; warns and skips unreadable or empty files.
-- chunk_text.py: overlapping word chunks and source metadata.
+- chunk_text.py: paragraph-aware, overlapping chunks and source metadata.
 - tf_idf.py: build_index once, search_index repeatedly; search_tfidf is a convenience wrapper.
 - semantic_search.py: lazy model loading and reusable in-memory document vectors.
+- document_qa.py: document-only answer generation and citation validation, adapted from the RAG starter.
 - main.py: command-line orchestration and output.
 - search_doc.py: original keyword baseline, kept for learning.
 

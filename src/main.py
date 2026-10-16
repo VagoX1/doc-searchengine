@@ -36,7 +36,16 @@ def run_search(directory="documents", query="borrow books", chunk_size=100, over
     for result in results:
         content = result["content"]
         preview = content[:200] + "..." if len(content) > 200 else content
-        print(f"{result['source']} - chunk {result['chunk_id']} (score: {result['score']:.3f})")
+
+        location = result["source"]
+
+        if result.get("page_number") is not None:
+            location += f" - PDF page {result['page_number']}"
+
+        print(
+            f"{location} - chunk {result['chunk_id']} "
+            f"(score: {result['score']:.3f})"
+        )
         print(preview)
         print()
 
