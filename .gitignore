@@ -19,6 +19,7 @@ env/
 *.key
 .continue
 review-requirements.md
+opencode.json
 
 # Editor settings
 .vscode/
