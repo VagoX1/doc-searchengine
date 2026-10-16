@@ -1,0 +1,128 @@
+[
+  {
+    "id": "supported-01",
+    "category": "supported",
+    "question": "How long may I keep a borrowed library book?",
+    "expected_status": "answered",
+    "required_evidence": [
+      {
+        "source": "library.txt",
+        "text": "Books must be returned within fourteen days."
+      }
+    ],
+    "expected_answer_points": [
+      "The return period is fourteen days."
+    ],
+    "must_ask_clarifying_question": false
+  },
+  {
+    "id": "supported-02",
+    "category": "supported",
+    "question": "Where is the account recovery link sent?",
+    "expected_status": "answered",
+    "required_evidence": [
+      {
+        "source": "accounts.txt",
+        "text": "A recovery link is sent to your registered email."
+      }
+    ],
+    "expected_answer_points": [
+      "The link is sent to the registered email address."
+    ],
+    "must_ask_clarifying_question": false
+  },
+  {
+    "id": "supported-03",
+    "category": "supported",
+    "question": "What should I inspect when my Python program crashes?",
+    "expected_status": "answered",
+    "required_evidence": [
+      {
+        "source": "python.txt",
+        "text": "Debug failures by reading the traceback and inspecting variables."
+      }
+    ],
+    "expected_answer_points": [
+      "Read the traceback and inspect variables."
+    ],
+    "must_ask_clarifying_question": false
+  },
+  {
+    "id": "ambiguous-01",
+    "category": "ambiguous",
+    "question": "How long does shipping take?",
+    "expected_status": "needs_clarification",
+    "required_evidence": [
+      {
+        "source": "shipping-options.txt",
+        "text": "Standard shipping takes three to five business days."
+      },
+      {
+        "source": "shipping-options.txt",
+        "text": "Express shipping takes one to two business days."
+      }
+    ],
+    "expected_answer_points": [
+      "State the standard shipping range.",
+      "State the express shipping range.",
+      "Ask which shipping option the user selected."
+    ],
+    "must_ask_clarifying_question": true
+  },
+  {
+    "id": "ambiguous-02",
+    "category": "ambiguous",
+    "question": "How many books may I borrow?",
+    "expected_status": "needs_clarification",
+    "required_evidence": [
+      {
+        "source": "membership-options.txt",
+        "text": "Adult members may borrow five books at a time."
+      },
+      {
+        "source": "membership-options.txt",
+        "text": "Student members may borrow eight books at a time."
+      }
+    ],
+    "expected_answer_points": [
+      "State the adult-member limit.",
+      "State the student-member limit.",
+      "Ask which membership type applies."
+    ],
+    "must_ask_clarifying_question": true
+  },
+  {
+    "id": "unanswerable-01",
+    "category": "unanswerable",
+    "question": "What is the library's phone number?",
+    "expected_status": "not_found",
+    "required_evidence": [],
+    "expected_answer_points": [
+      "Say that the indexed documents do not provide the phone number."
+    ],
+    "must_ask_clarifying_question": false
+  },
+  {
+    "id": "unanswerable-02",
+    "category": "unanswerable",
+    "question": "Can I renew a library book through the website?",
+    "expected_status": "not_found",
+    "required_evidence": [],
+    "expected_answer_points": [
+      "Say that the documents do not specify whether online renewal is available.",
+      "Do not claim that online renewal is or is not available."
+    ],
+    "must_ask_clarifying_question": false
+  },
+  {
+    "id": "unanswerable-03",
+    "category": "unanswerable",
+    "question": "What percentage discount do students get on shipping?",
+    "expected_status": "not_found",
+    "required_evidence": [],
+    "expected_answer_points": [
+      "Say that the documents do not specify a student shipping discount."
+    ],
+    "must_ask_clarifying_question": false
+  }
+]

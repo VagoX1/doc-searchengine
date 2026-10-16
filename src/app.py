@@ -4,7 +4,7 @@ import hashlib
 
 from chunk_text import chunk_documents
 from semantic_search import build_semantic_index, search_semantic
-from document_qa import answer_from_context
+from document_qa import answer_from_context, link_answer_citations
 
 import streamlit as st
 
@@ -112,7 +112,7 @@ if uploaded_file is not None:
                                 with st.spinner("Generating an answer from retrieved passages..."):
                                     answer = answer_from_context(query, results)
 
-                                st.write(answer.answer)
+                                st.markdown(link_answer_citations(answer))
 
                                 if answer.citations:
                                     st.markdown("**Cited passages**")
@@ -128,6 +128,8 @@ if uploaded_file is not None:
                                                 f"{citation['source']} - PDF page "
                                                 f"{page_number} - chunk {citation['chunk_id']}"
                                             )
+                                        anchor = f"passage-{citation['citation'].lower()}"
+                                        st.markdown(f'<div id="{anchor}"></div>', unsafe_allow_html=True)
                                         st.write(f"**[{citation['citation']}] {location}**")
                                         st.write(citation["text"])
 

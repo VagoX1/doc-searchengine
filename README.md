@@ -33,6 +33,10 @@ Set `OPENAI_API_KEY` in your environment before generating answers. The model de
 `gpt-5.6-luna`, matching the RAG starter, and can be changed with `RAG_CHAT_MODEL`.
 Never put the API key in source code or commit it. Generated answers validate citation IDs
 against the passages supplied to the model and show the cited source/page excerpts.
+Citations such as [S1] link to the supporting excerpt and do not depend on filenames.
+Structured answer status distinguishes unsupported questions from uncited answers;
+valid abstentions do not trigger missing-citation warnings. Citation-ID checks do not
+prove that every generated claim is supported by its excerpt.
 
 ## Stages 1 and 2
 
@@ -82,3 +86,22 @@ your uploaded documents so results are reproducible. Do not tune on these questi
 then treat their scores as independent evidence. Add held-out questions for your own PDFs.
 Unanswerable questions need separate threshold/abstention evaluation; this benchmark does
 not measure that or generated answers.
+
+## Answer-quality evaluation
+
+`evaluation/answer_questions.json` is a separate fixed set of supported, ambiguous, and
+unanswerable questions. Its small fictional corpus is in `evaluation/answer_documents/`.
+Each case specifies the expected answer status and evidence; ambiguous cases specify the
+alternative evidence that should be retrieved. Fixture-integrity tests verify the expected
+statuses, clarification flags, answer points, and required passages. Run the Stage 7.3
+retrieval-only evaluation from the project root:
+
+```powershell
+python src/evaluate_answer_retrieval.py
+python src/evaluate_answer_retrieval.py --offline
+```
+
+It reports all-required-evidence@3 and evidence-item recall@3 for supported and ambiguous
+questions, with per-question retrieval details in `evaluation/answer_retrieval_results.json`.
+Unanswerable cases are excluded from retrieval recall. The evaluator does not yet run answer
+generation or score claim-to-evidence support.

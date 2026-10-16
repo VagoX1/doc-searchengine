@@ -1,0 +1,1 @@
+Adult members may borrow five books at a time. Student members may borrow eight books at a time. The membership type is shown on the member card.

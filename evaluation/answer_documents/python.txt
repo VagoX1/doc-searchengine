@@ -1,0 +1,1 @@
+Python learning. Beginners should build small projects with clear functions. Debug failures by reading the traceback and inspecting variables. Use a virtual environment to isolate project dependencies.
