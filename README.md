@@ -30,7 +30,7 @@ OpenAI Responses API for answer generation; the RAG project's document-only cita
 abstention approach is adapted in `src/document_qa.py`. Search-only does not call the API.
 
 Set `OPENAI_API_KEY` in your environment before generating answers. The model defaults to
-`gpt-5.6-luna`, matching the RAG starter, and can be changed with `RAG_CHAT_MODEL`.
+`gpt-6-luna` and can be changed with `RAG_CHAT_MODEL`.
 Never put the API key in source code or commit it. Generated answers validate citation IDs
 against the passages supplied to the model and show the cited source/page excerpts.
 Citations such as [S1] link to the supporting excerpt and do not depend on filenames.

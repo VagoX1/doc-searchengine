@@ -48,6 +48,16 @@ def test_answer_uses_retrieved_pdf_page_and_validates_its_citation():
     assert client.responses.call["store"] is False
 
 
+def test_answer_defaults_to_gpt_6(monkeypatch):
+    monkeypatch.delenv("RAG_CHAT_MODEL", raising=False)
+    client = FakeClient("Fourteen days [S1].")
+    chunk = {"source": "library.txt", "chunk_id": 1, "content": "Fourteen days."}
+
+    answer_from_context("When are books due?", [chunk], client=client)
+
+    assert client.responses.call["model"] == "gpt-6-luna"
+
+
 def test_unavailable_citation_is_reported():
     chunks = [
         {

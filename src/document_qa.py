@@ -119,7 +119,7 @@ def answer_from_context(
         client = OpenAI()
 
     response = client.responses.create(
-        model=model_name or os.getenv("RAG_CHAT_MODEL", "gpt-5.6-luna"),
+        model=model_name or os.getenv("RAG_CHAT_MODEL", "gpt-6-luna"),
         instructions=ANSWER_INSTRUCTIONS,
         input=[
             {

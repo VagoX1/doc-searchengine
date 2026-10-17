@@ -1,6 +1,6 @@
 import argparse
 import json
-import json
+import os
 
 from document_qa import answer_from_context
 from evaluate_answer_retrieval import (
@@ -8,6 +8,8 @@ from evaluate_answer_retrieval import (
     evaluate_answer_retrieval,
 )
 from semantic_search import MODEL_NAME
+
+DEFAULT_CHAT_MODEL = "gpt-6-luna"
 
 JUDGE_FORMAT = {
     "type": "json_schema",
@@ -58,12 +60,18 @@ passage cited for it. A claim without a citation is unsupported. Citation IDs re
 the supplied passage IDs such as [S1]. Do not treat a generic abstention as an
 unsupported factual claim when the expected status is not_found.
 
-Do not decide whether the answer status is correct; that is scored separately."""
+Do not decide whether the answer status is correct; that is scored separately.
+
+For expected_status "not_found", a clear generic statement that the indexed
+document does not provide the answer satisfies a requirement to state that
+the requested information is unavailable. It need not repeat the specific
+subject of the question. Still check that the answer makes no unsupported
+positive or negative claims"""
 
 def judge_answer(question, answer, retrieved, client, judge_model):
     expected_points = [
         {"point_id": f"P{number}", "text": point}
-        for number, point in enumerate(question["expected_answer_points]"], start=1)
+        for number, point in enumerate(question["expected_answer_points"], start=1)
     ]
 
     passages = [
@@ -77,9 +85,9 @@ def judge_answer(question, answer, retrieved, client, judge_model):
         for number, passage in enumerate(retrieved, start=1)
     ]
 
-    response = client.response.create(
+    response = client.responses.create(
         model=judge_model,
-        instuctions=JUDGE_INSTRUCTIONS,
+        instructions=JUDGE_INSTRUCTIONS,
         input=[
             {
                 "role": "user",
@@ -105,39 +113,40 @@ def judge_answer(question, answer, retrieved, client, judge_model):
     )
 
     try:
-        judgement = json.loads(response.output_text)
+        judgment = json.loads(response.output_text)
     except (TypeError, ValueError) as exc:
         raise ValueError("The answer judge returned invalid structured output") from exc
-    
-    expected_ids = {point["point_id"] for point in expected_ponts}
-    point_results = judgement.get("answer_point_resutls")
-    if not isinstance(point_results, list):
+    if not isinstance(judgment, dict):
+        raise ValueError("The answer judge returned invalid structured output")
+
+    expected_ids = {point["point_id"] for point in expected_points}
+    point_results = judgment.get("answer_point_results")
+    if not isinstance(point_results, list) or any(
+        not isinstance(result, dict) for result in point_results
+    ):
         raise ValueError("The answer judge omitted answer-point results")
 
-    actual_ids = [
-        result.get("point_id")
-        for result in point_results
-        if isinstance(result, dict)
-    ]
+    actual_ids = [result.get("point_id") for result in point_results]
     if len(actual_ids) != len(expected_ids) or set(actual_ids) != expected_ids:
         raise ValueError("The answer judge returned missing or duplicate point IDs")
-    
+
     if any(type(result.get("covered")) is not bool for result in point_results):
         raise ValueError("The answer judge returned an invalid point result")
 
     if type(judgment.get("clarification_asked")) is not bool:
         raise ValueError("The answer judge returned an invalid clarification result")
 
-    unsupported_claims = judgement.get("unsupported_claims")
+    unsupported_claims = judgment.get("unsupported_claims")
     if not isinstance(unsupported_claims, list) or not all(
         isinstance(claim, str) for claim in unsupported_claims
     ):
         raise ValueError("The answer judge returned invalid unsupported claims")
 
-    return judgement
+    return judgment
+
 
 def score_case(question, answer, judgment, retrieval_check):
-    point_results = judgement["answer_point_results"]
+    point_results = judgment["answer_point_results"]
     points_complete = all(result["covered"] for result in point_results)
     status_correct = answer.status == question["expected_status"]
 
@@ -149,7 +158,7 @@ def score_case(question, answer, judgment, retrieval_check):
     citation_compliant = not answer.citation_warnings
     grounding_compliant = not judgment["unsupported_claims"]
 
-    generation_pass = all (
+    generation_pass = all(
         (
             status_correct,
             points_complete,
@@ -200,7 +209,7 @@ def evaluate_answer_generation(
         from openai import OpenAI
         client = OpenAI()
 
-    chat_model = chat_model or os.getenv("RAG_CHAT_MODEL", "gpt-6-luna")
+    chat_model = chat_model or os.getenv("RAG_CHAT_MODEL", DEFAULT_CHAT_MODEL)
     judge_model = (
         judge_model
         or os.getenv("RAG_JUDGE_MODEL")
@@ -328,10 +337,13 @@ def evaluate_answer_generation(
             "Clarification compliance: "
             f"{metrics['clarification_compliance']:.1%}"
         )
-    print(
+    pass_rate = metrics["generation_pass_rate_when_retrieval_succeeded"]
+
+    print(  
         "Generation pass rate when retrieval succeeded: "
-        f"{metrics['generation_pass_rate_when_retrieval_succeeded']:.1%}"
+        + (f"{pass_rate:.1%}" if pass_rate is not None else "n/a")
     )
+    
     print(f"Per-question results: {output_path}")
 
     return report
@@ -341,7 +353,7 @@ if __name__ == "__main__":
     parser.add_argument("--embedding-model", default=MODEL_NAME)
     parser.add_argument(
         "--chat-model",
-        default=os.getenv("RAG_CHAT_MODEL", "gpt-5.6-luna"),
+        default=os.getenv("RAG_CHAT_MODEL", DEFAULT_CHAT_MODEL),
     )
     parser.add_argument(
         "--judge-model",
