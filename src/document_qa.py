@@ -48,14 +48,29 @@ class DocumentAnswer:
     status: str = "answered"
 
 
-def link_answer_citations(answer: DocumentAnswer) -> str:
-    """Link only validated citation tokens to fixed, safe passage anchors."""
-    valid_ids = {citation["citation"] for citation in answer.citations}
+def link_citation_tokens(
+    answer_text: str,
+    citations: list[dict[str, Any]],
+    anchor_prefix: str | None = None,
+) -> str:
+    """Link validated citation tokens to safe passage anchors."""
+    valid_ids = {citation["citation"] for citation in citations}
+    prefix = f"{anchor_prefix}-" if anchor_prefix else ""
     return CITATION_PATTERN.sub(
-        lambda match: f"[{match.group(1)}](#passage-{match.group(1).lower()})"
+        lambda match: (
+            f"[{match.group(1)}](#passage-{prefix}{match.group(1).lower()})"
+        )
         if match.group(1) in valid_ids else match.group(0),
-        answer.answer,
+        answer_text,
     )
+
+
+def link_answer_citations(
+    answer: DocumentAnswer,
+    anchor_prefix: str | None = None,
+) -> str:
+    """Link only validated citation tokens to fixed, safe passage anchors."""
+    return link_citation_tokens(answer.answer, answer.citations, anchor_prefix)
 
 
 def answer_from_context(

@@ -4,7 +4,13 @@ import hashlib
 
 from chunk_text import chunk_documents
 from semantic_search import build_semantic_index, search_semantic
-from document_qa import answer_from_context, link_answer_citations
+from conversation_history import (
+    make_exchange,
+    render_conversation_history,
+    render_exchange,
+)
+
+from followup import resolve_search_and_answer
 
 import streamlit as st
 
@@ -12,6 +18,9 @@ from file_loader import extract_document_records
 
 from index_cache import make_cache_key, load_index, save_index
 from semantic_search import MODEL_NAME
+
+if "conversation_history" not in st.session_state:
+    st.session_state["conversation_history"] = []
 
 st.title("Document Search")
 
@@ -27,7 +36,7 @@ if uploaded_file is not None:
         st.session_state["file_id"] = file_id
         st.session_state.pop("chunks", None)
         st.session_state.pop("vectors", None)
-
+        st.session_state["conversation_history"] = []
 
     try:
         with TemporaryDirectory() as folder:
@@ -90,66 +99,69 @@ if uploaded_file is not None:
             if "vectors" in st.session_state:
                 st.success("Document indexed and ready.")
 
+                if st.button("New conversation", key="new_conversation"):
+                    st.session_state["conversation_history"] = []
+                    st.rerun()
+
+                render_conversation_history(
+                    st.session_state["conversation_history"]
+                )
+
                 with st.form("search_form"):
                     query = st.text_input("Search")
                     submitted = st.form_submit_button("Search")
                     answer_submitted = st.form_submit_button("Answer from document")
 
                 if submitted or answer_submitted:
+                    results = None
+
                     if not query.strip():
                         st.warning("Enter a question.")
-                    else:
+                    elif submitted:
                         results = search_semantic(
                             st.session_state["chunks"],
                             st.session_state["vectors"],
                             query,
                             top_k=3
                         )
+                    else:
+                        try:
+                            history = st.session_state["conversation_history"]
 
-                        if answer_submitted:
-                            st.subheader("Answer")
-                            try:
-                                with st.spinner("Generating an answer from retrieved passages..."):
-                                    answer = answer_from_context(query, results)
+                            with st.spinner("Resolving question and searching documents..."):
+                                _, results, answer = resolve_search_and_answer(
+                                    query,
+                                    history,
+                                    st.session_state["chunks"],
+                                    st.session_state["vectors"],
+                                    top_k=3,
+                                )
 
-                                st.markdown(link_answer_citations(answer))
+                        except Exception as exc:
+                            st.error(f"Answer generation failed: {exc}")
 
-                                if answer.citations:
-                                    st.markdown("**Cited passages**")
-                                    for citation in answer.citations:
-                                        page_number = citation["page_number"]
-                                        if page_number is None:
-                                            location = (
-                                                f"{citation['source']} - "
-                                                f"chunk {citation['chunk_id']}"
-                                            )
-                                        else:
-                                            location = (
-                                                f"{citation['source']} - PDF page "
-                                                f"{page_number} - chunk {citation['chunk_id']}"
-                                            )
-                                        anchor = f"passage-{citation['citation'].lower()}"
-                                        st.markdown(f'<div id="{anchor}"></div>', unsafe_allow_html=True)
-                                        st.write(f"**[{citation['citation']}] {location}**")
-                                        st.write(citation["text"])
+                        else:
+                            exchange = make_exchange(query, answer)
+                            history.append(exchange)
+                            render_exchange(exchange, len(history))
 
-                                for warning in answer.citation_warnings:
-                                    st.warning(warning)
-                            except Exception as e:
-                                st.error(f"Answer generation failed: {e}")
-
+                    if results is not None:
                         st.subheader("Retrieved passages")
+
                         for result in results:
                             page_number = result.get("page_number")
 
                             if page_number is None:
-                                location = f"{result['source']} - chunk {result['chunk_id']}"
+                                location = (
+                                    f"{result['source']} - chunk "
+                                    f"{result['chunk_id']}"
+                                )
                             else:
                                 location = (
-                                    f"{result['source']} - PDF page {page_number} "
-                                    f"- chunk {result['chunk_id']}"
+                                    f"{result['source']} - PDF page "
+                                    f"{page_number} - chunk {result['chunk_id']}"
                                 )
- 
+
                             st.write(f"**{location}**")
                             st.caption(f"similarity: {result['score']:.3f}")
                             st.write(result["content"])
@@ -158,5 +170,6 @@ if uploaded_file is not None:
         st.error(f"Document processing failed: {e}")
 
 if uploaded_file is None:
+    st.session_state["conversation_history"] = []
     for key in ("file_id", "chunks", "vectors"):
         st.session_state.pop(key, None)
