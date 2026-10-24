@@ -1,3 +1,5 @@
+"""Evaluate generated answers using fixed expectations and a structured model judge."""
+
 import argparse
 import json
 import os
@@ -11,6 +13,7 @@ from semantic_search import MODEL_NAME
 
 DEFAULT_CHAT_MODEL = "gpt-6-luna"
 
+# The judge returns one coverage decision per expected point, plus grounding checks.
 JUDGE_FORMAT = {
     "type": "json_schema",
     "name": "answer_quality_judgment",
@@ -69,6 +72,7 @@ subject of the question. Still check that the answer makes no unsupported
 positive or negative claims"""
 
 def judge_answer(question, answer, retrieved, client, judge_model):
+    """Ask a structured judge to score answer points, clarification, and grounding."""
     expected_points = [
         {"point_id": f"P{number}", "text": point}
         for number, point in enumerate(question["expected_answer_points"], start=1)
@@ -85,6 +89,7 @@ def judge_answer(question, answer, retrieved, client, judge_model):
         for number, passage in enumerate(retrieved, start=1)
     ]
 
+    # Citation IDs are assigned in the same order as answer_from_context.
     response = client.responses.create(
         model=judge_model,
         instructions=JUDGE_INSTRUCTIONS,
@@ -146,6 +151,7 @@ def judge_answer(question, answer, retrieved, client, judge_model):
 
 
 def score_case(question, answer, judgment, retrieval_check):
+    """Combine deterministic answer checks with judge output and attribute failures."""
     point_results = judgment["answer_point_results"]
     points_complete = all(result["covered"] for result in point_results)
     status_correct = answer.status == question["expected_status"]
@@ -195,6 +201,7 @@ def score_case(question, answer, judgment, retrieval_check):
     }
 
 def rate(numerator, denominator):
+    """Return a ratio, or None when there are no applicable cases."""
     return numerator / denominator if denominator else None
 
 def evaluate_answer_generation(
@@ -205,6 +212,7 @@ def evaluate_answer_generation(
     top_k=3,
     client=None,
 ):
+    """Run retrieval, generation, judging, and write per-question score details."""
     if client is None:
         from openai import OpenAI
         client = OpenAI()
@@ -225,6 +233,7 @@ def evaluate_answer_generation(
     rows = []
 
     for question in retrieval_report["details"]:
+        # Use the exact top-k passages scored by the retrieval evaluator.
         answer = answer_from_context(
             question["question"],
             question["retrieved"],
@@ -349,6 +358,7 @@ def evaluate_answer_generation(
     return report
 
 if __name__ == "__main__":
+    # Expose model selection and embedding-cache settings through the CLI.
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--embedding-model", default=MODEL_NAME)
     parser.add_argument(

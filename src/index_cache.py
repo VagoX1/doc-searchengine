@@ -1,3 +1,5 @@
+"""Persist semantic document vectors and their matching chunk records."""
+
 import hashlib
 import json
 from pathlib import Path
@@ -5,6 +7,7 @@ from pathlib import Path
 import numpy as np
 
 CACHE_DIR = Path(__file__).resolve().parent.parent / ".index_cache"
+
 
 def make_cache_key(
     file_bytes, 
@@ -14,6 +17,7 @@ def make_cache_key(
     file_extension, 
     chunk_strategy
 ):
+    """Create a stable cache key from file bytes and all indexing settings."""
     settings = {
         "file_hash": hashlib.sha256(file_bytes).hexdigest(),
         "model": model_name,
@@ -27,7 +31,9 @@ def make_cache_key(
     encoded = json.dumps(settings, sort_keys=True).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
+
 def save_index(cache_key, chunks, vectors):
+    """Write chunk metadata and vectors to a compressed NumPy archive."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     path = CACHE_DIR / f"{cache_key}.npz"
@@ -38,7 +44,9 @@ def save_index(cache_key, chunks, vectors):
         vectors=vectors
     )
 
+
 def load_index(cache_key):
+    """Load a valid cached index, returning None when it is absent or corrupt."""
     path = CACHE_DIR / f"{cache_key}.npz"
 
     if not path.is_file():

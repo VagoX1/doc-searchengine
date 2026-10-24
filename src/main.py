@@ -1,3 +1,4 @@
+"""Command-line entry point for local document search."""
 import argparse
 import logging
 
@@ -9,6 +10,19 @@ from validation import validate_query, validate_chunk_settings
 
 
 def run_search(directory="documents", query="borrow books", chunk_size=100, overlap=20, top_k=3, method="semantic"):
+    """Load, chunk, index, and search a document folder.
+
+    Args:
+        directory: Folder containing supported document files.
+        query: User's search text.
+        chunk_size: Maximum words per chunk.
+        overlap: Words shared between adjacent chunks.
+        top_k: Maximum number of passages to display.
+        method: Either ``"semantic"`` or ``"tfidf"``.
+
+    Returns:
+        The ranked passage records, or an empty list when there are no results.
+    """
     validate_query(query, top_k)
     validate_chunk_settings(chunk_size, overlap)
     if method not in {"semantic", "tfidf"}:
@@ -24,9 +38,11 @@ def run_search(directory="documents", query="borrow books", chunk_size=100, over
         return []
 
     if method == "semantic":
+        # Semantic search embeds the query and compares it with document vectors.
         document_vectors = build_semantic_index(chunks)
         results = search_semantic(chunks, document_vectors, query, top_k=top_k)
     else:
+        # TF-IDF search uses a fitted vectorizer and sparse document matrix.
         vectorizer, vectors = build_index(chunks)
         results = search_index(chunks, vectorizer, vectors, query, top_k=top_k)
 
@@ -53,6 +69,7 @@ def run_search(directory="documents", query="borrow books", chunk_size=100, over
 
 
 if __name__ == "__main__":
+    # Configure logging and expose the search options as command-line arguments.
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description="Search local TXT, PDF, and DOCX documents")
     parser.add_argument("query", nargs="?", default="borrow books")

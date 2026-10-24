@@ -1,3 +1,5 @@
+"""Streamlit interface for uploading, indexing, searching, and chatting with documents."""
+
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import hashlib
@@ -20,6 +22,7 @@ from index_cache import make_cache_key, load_index, save_index
 from semantic_search import MODEL_NAME
 
 if "conversation_history" not in st.session_state:
+    # Keep chat exchanges only for the current Streamlit browser session.
     st.session_state["conversation_history"] = []
 
 st.title("Document Search")
@@ -33,6 +36,7 @@ if uploaded_file is not None:
     )
 
     if st.session_state.get("file_id") != file_id:
+        # A changed upload invalidates both the index and its conversation context.
         st.session_state["file_id"] = file_id
         st.session_state.pop("chunks", None)
         st.session_state.pop("vectors", None)
@@ -58,6 +62,7 @@ if uploaded_file is not None:
             st.text_area("Extracted text", text, height=300)
 
             if st.button("index document"):
+                # Reuse the cache when possible; otherwise build vectors for the upload.
                 chunk_size = 100
                 overlap = 20
 
@@ -99,6 +104,7 @@ if uploaded_file is not None:
             if "vectors" in st.session_state:
                 st.success("Document indexed and ready.")
 
+                # A new conversation clears messages without discarding this index.
                 if st.button("New conversation", key="new_conversation"):
                     st.session_state["conversation_history"] = []
                     st.rerun()
@@ -108,6 +114,7 @@ if uploaded_file is not None:
                 )
 
                 with st.form("search_form"):
+                    # Search stays literal; answer requests use the conversation resolver.
                     query = st.text_input("Search")
                     submitted = st.form_submit_button("Search")
                     answer_submitted = st.form_submit_button("Answer from document")
@@ -129,6 +136,7 @@ if uploaded_file is not None:
                             history = st.session_state["conversation_history"]
 
                             with st.spinner("Resolving question and searching documents..."):
+                                # Resolution uses history only for wording; retrieval supplies evidence.
                                 _, results, answer = resolve_search_and_answer(
                                     query,
                                     history,
@@ -141,6 +149,7 @@ if uploaded_file is not None:
                             st.error(f"Answer generation failed: {exc}")
 
                         else:
+                            # Save only after resolving, retrieving, and answering succeeded.
                             exchange = make_exchange(query, answer)
                             history.append(exchange)
                             render_exchange(exchange, len(history))

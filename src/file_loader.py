@@ -1,10 +1,18 @@
+"""Extract text and source metadata from TXT, PDF, and DOCX files."""
+
 import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 SUPPORTED_EXTENSIONS = {".txt", ".pdf", ".docx"}
 
+
 def extract_document_records(path):
+    """Extract one or more text records from a supported document file.
+
+    Text files and DOCX files produce a single record; PDFs produce one record
+    per nonempty page so page citations can be retained.
+    """
     path = Path(path)
     suffix = path.suffix.lower()
     records = []
@@ -25,6 +33,7 @@ def extract_document_records(path):
 
         reader = PdfReader(path)
 
+        # Keep page numbers attached to extracted text for later citations.
         for page_number, page in enumerate(reader.pages, start=1):
             try:
                 text = page.extract_text() or ""
@@ -61,6 +70,7 @@ def extract_document_records(path):
 
         parts = []
 
+        # Read body paragraphs and tables in their document order.
         for block in Document(path).iter_inner_content():
             if isinstance(block, Paragraph):
                 if block.text.strip():
@@ -86,12 +96,14 @@ def extract_document_records(path):
     raise ValueError(f"Unsupported file type: {suffix}")
 
 def extract_text_from_file(path):
+    """Return extracted text joined across all records in a file."""
     records = extract_document_records(path)
     return "\n\n".join(record["content"] for record in records)
 
 
 
 def load_documents(folder_path):
+    """Load supported files in a folder, warning and skipping unreadable files."""
     folder = Path(__file__).resolve().parent / folder_path
     if not folder.is_dir():
         raise NotADirectoryError(f"Document folder not found: {folder}")
@@ -114,5 +126,6 @@ def load_documents(folder_path):
 
 
 if __name__ == "__main__":
+    # Allow quick manual inspection of the default documents folder.
     logging.basicConfig(level=logging.INFO)
     print(load_documents("documents"))

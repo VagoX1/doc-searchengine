@@ -12,13 +12,16 @@ BASE = Path(__file__).resolve().parent
 
 
 def passage_matches(result, question):
+    """Check whether a result contains the expected text from the expected source."""
     def normalize(text):
+        """Normalize whitespace and case for a literal evidence comparison."""
         return " ".join(text.split()).lower()
     return (result["source"] == question["source"]
             and normalize(question["expected_text"]) in normalize(result["content"]))
 
 
 def measure(questions, search):
+    """Measure hit@1, hit@3, and MRR@3 for a supplied search function."""
     if not questions:
         raise ValueError("Evaluation needs questions")
     rows = []
@@ -37,6 +40,7 @@ def measure(questions, search):
 
 
 def evaluate(method="both", model_name=MODEL_NAME, offline=False):
+    """Run the fixed retrieval benchmark with TF-IDF, semantic, or both methods."""
     chunks = chunk_documents(load_documents(BASE / "evaluation" / "documents"), 40, 10)
     questions = json.loads((BASE / "evaluation/questions.json").read_text(encoding="utf-8"))
     for question in questions:
@@ -62,6 +66,7 @@ def evaluate(method="both", model_name=MODEL_NAME, offline=False):
 
 
 if __name__ == "__main__":
+    # Expose benchmark selection and offline model loading through the CLI.
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--method", choices=["both", "tfidf", "semantic"], default="both")
     parser.add_argument("--model", default=MODEL_NAME, help="Model identifier or local folder")

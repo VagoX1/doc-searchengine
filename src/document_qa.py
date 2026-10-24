@@ -41,6 +41,8 @@ ABSTENTION = "The indexed document does not provide an answer to that question."
 
 @dataclass
 class DocumentAnswer:
+    """A generated answer together with status and validated citation metadata."""
+
     answer: str
     citations: list[dict[str, Any]]
     citation_warnings: list[str]

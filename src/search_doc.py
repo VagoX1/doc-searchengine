@@ -1,6 +1,8 @@
+"""Simple keyword-overlap baseline retained for comparison and learning."""
 import re
 
 def search_documents(documents, query):
+    """Return documents ranked by the number of unique query words they contain."""
     if not documents or not query.strip():
         return []
 

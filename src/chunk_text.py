@@ -1,8 +1,11 @@
+"""Split document text into paragraph-aware chunks with optional overlap."""
+
 from validation import validate_documents, validate_chunk_settings
 import re
 
 
 def chunk_text(text, chunk_size=100, overlap=20):
+    """Chunk text by paragraphs while keeping each chunk near the word limit."""
     validate_chunk_settings(chunk_size, overlap)
 
     if not isinstance(text, str):
@@ -20,6 +23,7 @@ def chunk_text(text, chunk_size=100, overlap=20):
     current_word_count = 0
 
     def flush_current():
+        """Store the current group of paragraphs and reset its word counter."""
         nonlocal current_paragraphs, current_word_count
         if current_paragraphs:
             chunks.append("\n\n".join(current_paragraphs))
@@ -71,6 +75,7 @@ def chunk_text(text, chunk_size=100, overlap=20):
     return chunks
 
 def split_long_paragraph(text, chunk_size, overlap):
+    """Split an overlong paragraph into fixed-size overlapping word windows."""
     words = text.split()
     chunks = []
     step = chunk_size - overlap
@@ -85,6 +90,7 @@ def split_long_paragraph(text, chunk_size, overlap):
     return chunks
 
 def chunk_documents(documents, chunk_size=100, overlap=20):
+    """Chunk each document and preserve its source metadata on every record."""
     validate_chunk_settings(chunk_size, overlap)
     validate_documents(documents)
 

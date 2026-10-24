@@ -8,11 +8,13 @@ MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
 @lru_cache(maxsize=2)
 def get_model(model_name=MODEL_NAME, local_files_only=False):
+    """Load and cache a sentence-transformer model on first use."""
     from sentence_transformers import SentenceTransformer
     return SentenceTransformer(model_name, local_files_only=local_files_only)
 
 
 def build_semantic_index(documents, model=None):
+    """Encode document contents into normalized vectors in document order."""
     validate_documents(documents)
     if not documents:
         return np.empty((0, 0), dtype=float)
@@ -25,6 +27,7 @@ def build_semantic_index(documents, model=None):
 
 
 def search_semantic(documents, document_vectors, query, top_k=3, model=None):
+    """Rank documents by cosine similarity between their vectors and the query."""
     validate_documents(documents)
     validate_query(query, top_k)
     if not documents or not query.strip():

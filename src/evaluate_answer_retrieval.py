@@ -21,10 +21,12 @@ TOP_K = 3
 
 
 def normalize(text):
+    """Collapse whitespace and lowercase text for evidence comparisons."""
     return " ".join(text.split()).lower()
 
 
 def evidence_was_retrieved(expected, retrieved):
+    """Check whether a retrieved passage contains evidence from the expected source."""
     expected_text = normalize(expected["text"])
 
     return any(
@@ -35,6 +37,7 @@ def evidence_was_retrieved(expected, retrieved):
 
 
 def assess_retrieval(question, retrieved):
+    """Return retrieval success and missing evidence for one evaluation question."""
     category = question["category"]
     if category == "unanswerable":
         return {
