@@ -1,6 +1,7 @@
 import pytest
 
-from hybrid_search import reciprocal_rank_fusion
+import hybrid_search
+from hybrid_search import HybridIndex, reciprocal_rank_fusion
 
 
 def passage(source, chunk_id, content, score):
@@ -77,3 +78,108 @@ def test_rrf_accepts_unlimited_results():
     )
 
     assert len(results) == 1
+
+
+def test_build_hybrid_index_builds_both_indexes_from_same_chunks(monkeypatch):
+    chunks = [passage("a.txt", 1, "A passage.", 0.8)]
+    vectorizer = object()
+    tfidf_vectors = object()
+    semantic_vectors = object()
+    model = object()
+    calls = []
+
+    def fake_build_index(documents):
+        calls.append(("tfidf", documents))
+        return vectorizer, tfidf_vectors
+
+    def fake_build_semantic_index(documents, model=None):
+        calls.append(("semantic", documents, model))
+        return semantic_vectors
+
+    monkeypatch.setattr(hybrid_search, "build_index", fake_build_index)
+    monkeypatch.setattr(
+        hybrid_search,
+        "build_semantic_index",
+        fake_build_semantic_index,
+    )
+
+    index = hybrid_search.build_hybrid_index(chunks, model=model)
+
+    assert calls == [
+        ("tfidf", chunks),
+        ("semantic", chunks, model),
+    ]
+    assert index.tfidf_vectorizer is vectorizer
+    assert index.tfidf_vectors is tfidf_vectors
+    assert index.semantic_vectors is semantic_vectors
+    assert index.model is model
+
+
+def test_search_hybrid_queries_both_retrievers_then_fuses(monkeypatch):
+    chunks = [
+        passage("a.txt", 1, "First passage.", 0.0),
+        passage("b.txt", 1, "Second passage.", 0.0),
+        passage("c.txt", 1, "Third passage.", 0.0),
+    ]
+    index = HybridIndex(
+        tfidf_vectorizer=object(),
+        tfidf_vectors=object(),
+        semantic_vectors=object(),
+        model=object(),
+    )
+    tfidf_candidates = [
+        {**chunks[0], "score": 0.9},
+        {**chunks[1], "score": 0.7},
+    ]
+    semantic_candidates = [
+        {**chunks[1], "score": 0.95},
+        {**chunks[2], "score": 0.6},
+    ]
+    requested_model = object()
+    calls = {}
+
+    def fake_search_index(documents, vectorizer, vectors, query, top_k):
+        calls["tfidf"] = (documents, query, top_k)
+        return tfidf_candidates
+
+    def fake_search_semantic(documents, vectors, query, top_k, model):
+        calls["semantic"] = (documents, query, top_k, model)
+        return semantic_candidates
+
+    monkeypatch.setattr(hybrid_search, "search_index", fake_search_index)
+    monkeypatch.setattr(hybrid_search, "search_semantic", fake_search_semantic)
+
+    results = hybrid_search.search_hybrid(
+        chunks,
+        index,
+        "shared query",
+        top_k=2,
+        candidate_k=5,
+        rrf_k=60,
+        model=requested_model,
+    )
+
+    assert calls["tfidf"] == (chunks, "shared query", 5)
+    assert calls["semantic"] == (
+        chunks,
+        "shared query",
+        5,
+        requested_model,
+    )
+    assert [result["source"] for result in results] == ["b.txt", "a.txt"]
+    assert results[0]["tfidf_rank"] == 2
+    assert results[0]["semantic_rank"] == 1
+
+
+def test_search_hybrid_rejects_candidate_pool_smaller_than_output():
+    chunks = [passage("a.txt", 1, "A passage.", 0.8)]
+    index = HybridIndex(None, None, None)
+
+    with pytest.raises(ValueError, match="candidate_k must be at least top_k"):
+        hybrid_search.search_hybrid(
+            chunks,
+            index,
+            "query",
+            top_k=3,
+            candidate_k=2,
+        )
