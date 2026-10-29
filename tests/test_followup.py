@@ -131,7 +131,7 @@ def test_resolve_search_and_answer_uses_only_fresh_retrieval(
 ):
     history = [exchange("When must I return a book?", "Return it within fourteen days.")]
     chunks = [{"source": "library.txt", "content": "indexed text"}]
-    vectors = object()
+    hybrid_index = object()
     fresh_results = [
         {
             "source": "library.txt",
@@ -148,8 +148,15 @@ def test_resolve_search_and_answer_uses_only_fresh_retrieval(
         calls["resolve"] = (query, recent_history, client)
         return "Can I extend the return period for a borrowed library book?"
 
-    def fake_search(documents, document_vectors, query, top_k):
-        calls["search"] = (documents, document_vectors, query, top_k)
+    def fake_search(documents, index, query, top_k, candidate_k, rrf_k):
+        calls["search"] = (
+            documents,
+            index,
+            query,
+            top_k,
+            candidate_k,
+            rrf_k,
+        )
         return fresh_results
 
     def fake_answer(question, retrieved, client):
@@ -157,7 +164,7 @@ def test_resolve_search_and_answer_uses_only_fresh_retrieval(
         return answer
 
     monkeypatch.setattr(followup, "resolve_followup_question", fake_resolve)
-    monkeypatch.setattr(followup, "search_semantic", fake_search)
+    monkeypatch.setattr(followup, "search_hybrid", fake_search)
     monkeypatch.setattr(followup, "answer_from_context", fake_answer)
     client = object()
 
@@ -165,13 +172,13 @@ def test_resolve_search_and_answer_uses_only_fresh_retrieval(
         "Can I extend that?",
         history,
         chunks,
-        vectors,
+        hybrid_index,
         client=client,
     )
 
     assert resolved == "Can I extend the return period for a borrowed library book?"
     assert calls["resolve"] == ("Can I extend that?", history, client)
-    assert calls["search"] == (chunks, vectors, resolved, 3)
+    assert calls["search"] == (chunks, hybrid_index, resolved, 3, 20, 60)
     assert calls["answer"] == (resolved, fresh_results, client)
     assert retrieved is fresh_results
     assert result is answer

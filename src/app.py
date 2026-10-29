@@ -5,7 +5,8 @@ from tempfile import TemporaryDirectory
 import hashlib
 
 from chunk_text import chunk_documents
-from semantic_search import build_semantic_index, search_semantic
+from hybrid_search import build_hybrid_index, search_hybrid
+
 from conversation_history import (
     make_exchange,
     render_conversation_history,
@@ -19,7 +20,7 @@ import streamlit as st
 from file_loader import extract_document_records
 
 from index_cache import make_cache_key, load_index, save_index
-from semantic_search import MODEL_NAME
+from semantic_search import MODEL_NAME, build_semantic_index
 
 if "conversation_history" not in st.session_state:
     # Keep chat exchanges only for the current Streamlit browser session.
@@ -38,10 +39,9 @@ if uploaded_file is not None:
     if st.session_state.get("file_id") != file_id:
         # A changed upload invalidates both the index and its conversation context.
         st.session_state["file_id"] = file_id
-        st.session_state.pop("chunks", None)
-        st.session_state.pop("vectors", None)
+        for key in ("chunks", "vectors", "hybrid_index"):
+            st.session_state.pop(key, None)
         st.session_state["conversation_history"] = []
-
     try:
         with TemporaryDirectory() as folder:
             suffix = Path(uploaded_file.name).suffix.lower()
@@ -98,10 +98,18 @@ if uploaded_file is not None:
 
                         st.info("Built and saved a new index.")
 
+                    # Build TF-IDF once and reuse the semantic vectors from cache.
+                    hybrid_index = build_hybrid_index(
+                        chunks,
+                        semantic_vectors=vectors,
+                    )
+
                     st.session_state["chunks"] = chunks
                     st.session_state["vectors"] = vectors
+                    st.session_state["hybrid_index"] = hybrid_index
 
-            if "vectors" in st.session_state:
+
+            if "hybrid_index" in st.session_state:
                 st.success("Document indexed and ready.")
 
                 # A new conversation clears messages without discarding this index.
@@ -125,11 +133,13 @@ if uploaded_file is not None:
                     if not query.strip():
                         st.warning("Enter a question.")
                     elif submitted:
-                        results = search_semantic(
+                        results = search_hybrid(
                             st.session_state["chunks"],
-                            st.session_state["vectors"],
+                            st.session_state["hybrid_index"],
                             query,
-                            top_k=3
+                            top_k=3,
+                            candidate_k=20,
+                            rrf_k=60,
                         )
                     else:
                         try:
@@ -141,8 +151,10 @@ if uploaded_file is not None:
                                     query,
                                     history,
                                     st.session_state["chunks"],
-                                    st.session_state["vectors"],
+                                    st.session_state["hybrid_index"],
                                     top_k=3,
+                                    candidate_k=20,
+                                    rrf_k=60
                                 )
 
                         except Exception as exc:
@@ -172,7 +184,11 @@ if uploaded_file is not None:
                                 )
 
                             st.write(f"**{location}**")
-                            st.caption(f"similarity: {result['score']:.3f}")
+                            st.caption(
+                                f"RRF score: {result['rrf_score']:.3f} | "
+                                f"TF-IDF rank: {result.get('tfidf_rank') or '—'} | "
+                                f"semantic rank: {result.get('semantic_rank') or '—'}"
+                            )
                             st.write(result["content"])
 
     except Exception as e:
@@ -180,5 +196,5 @@ if uploaded_file is not None:
 
 if uploaded_file is None:
     st.session_state["conversation_history"] = []
-    for key in ("file_id", "chunks", "vectors"):
+    for key in ("file_id", "chunks", "vectors", "hybrid_index"):
         st.session_state.pop(key, None)

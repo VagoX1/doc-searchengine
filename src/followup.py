@@ -3,7 +3,7 @@ import json
 import os
 
 from document_qa import answer_from_context
-from semantic_search import search_semantic
+from hybrid_search import search_hybrid
 
 FOLLOWUP_FORMAT = {
     "type": "json_schema",
@@ -40,6 +40,7 @@ def resolve_followup_question(query, history, client=None, model_name=None):
     if not history:
         return query
 
+    # Send only recent text/status needed to resolve references.
     recent_history = [
         {
             "question": exchange["question"],
@@ -94,11 +95,13 @@ def resolve_search_and_answer(
     query,
     history,
     chunks,
-    vectors,
+    hybrid_index,
     client=None,
     top_k=3,
+    candidate_k=20,
+    rrf_k=60,
 ):
-    """Resolve a follow-up, retrieve fresh passages, and answer from those passages."""
+    """Resolve a follow-up, retrieve fresh hybrid results, and answer from them."""
     if history and client is None:
         from openai import OpenAI
 
@@ -109,11 +112,14 @@ def resolve_search_and_answer(
         history,
         client=client,
     )
-    retrieved = search_semantic(
+    # Hybrid search retrieves evidence only from the current document's chunks.
+    retrieved = search_hybrid(
         chunks,
-        vectors,
+        hybrid_index,
         standalone_question,
         top_k=top_k,
+        candidate_k=candidate_k,
+        rrf_k=rrf_k
     )
     answer = answer_from_context(
         standalone_question,

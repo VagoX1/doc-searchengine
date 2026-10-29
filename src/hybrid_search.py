@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
+
 from semantic_search import build_semantic_index, search_semantic
 from tf_idf import build_index, search_index
 from validation import validate_documents, validate_query
@@ -120,14 +122,22 @@ class HybridIndex:
     model: Any = None
 
 
-def build_hybrid_index(chunks, model=None):
+def build_hybrid_index(chunks, model=None, semantic_vectors=None):
     """Build both retriever indexes once for reuse across queries."""
     validate_documents(chunks)
 
-    # Keeping the exact same chunk order is essential: both vector matrices are
-    # aligned row-for-row with this list.
+    # Fit lexical search over these chunks.
     tfidf_vectorizer, tfidf_vectors = build_index(chunks)
-    semantic_vectors = build_semantic_index(chunks, model=model)
+
+    # Reuse cached semantic vectors, or compute them for a new document.
+    if semantic_vectors is None:
+        semantic_vectors = build_semantic_index(chunks, model=model)
+    else:
+        semantic_vectors = np.asarray(semantic_vectors)
+        if semantic_vectors.ndim != 2 or semantic_vectors.shape[0] != len(chunks):
+            raise ValueError("Document records must match the semantic vectors")
+        if not np.isfinite(semantic_vectors).all():
+            raise ValueError("Embeddings must contain finite values")
 
     return HybridIndex(
         tfidf_vectorizer=tfidf_vectorizer,

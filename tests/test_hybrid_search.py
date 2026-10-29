@@ -115,6 +115,37 @@ def test_build_hybrid_index_builds_both_indexes_from_same_chunks(monkeypatch):
     assert index.model is model
 
 
+def test_build_hybrid_index_reuses_cached_semantic_vectors(monkeypatch):
+    import numpy as np
+
+    chunks = [passage("a.txt", 1, "A passage.", 0.8)]
+    vectorizer = object()
+    tfidf_vectors = object()
+    cached_semantic_vectors = np.asarray([[1.0, 0.0]])
+
+    monkeypatch.setattr(
+        hybrid_search,
+        "build_index",
+        lambda documents: (vectorizer, tfidf_vectors),
+    )
+    monkeypatch.setattr(
+        hybrid_search,
+        "build_semantic_index",
+        lambda *args, **kwargs: pytest.fail(
+            "Cached semantic vectors should avoid re-embedding documents"
+        ),
+    )
+
+    index = hybrid_search.build_hybrid_index(
+        chunks,
+        semantic_vectors=cached_semantic_vectors,
+    )
+
+    assert index.tfidf_vectorizer is vectorizer
+    assert index.tfidf_vectors is tfidf_vectors
+    assert np.array_equal(index.semantic_vectors, cached_semantic_vectors)
+
+
 def test_search_hybrid_queries_both_retrievers_then_fuses(monkeypatch):
     chunks = [
         passage("a.txt", 1, "First passage.", 0.0),
