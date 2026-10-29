@@ -22,6 +22,17 @@ from file_loader import extract_document_records
 from index_cache import make_cache_key, load_index, save_index
 from semantic_search import MODEL_NAME, build_semantic_index
 
+if not st.user.is_logged_in:
+    st.title("Document Search")
+    st.button("Log in", on_click=st.login)
+    st.stop()
+
+# Use this stable authenticated ID for ownership checks in Stage 10.2.
+authenticated_user_id = st.user.sub
+
+if st.sidebar.button("Log out"):
+    st.logout()
+
 if "conversation_history" not in st.session_state:
     # Keep chat exchanges only for the current Streamlit browser session.
     st.session_state["conversation_history"] = []
